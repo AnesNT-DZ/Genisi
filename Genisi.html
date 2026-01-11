@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genisi AI | AnesNT Edition</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Noto+Kufi+Arabic:wght@400;500&display=swap');
+
+        :root {
+            --bg: #0a0b10; --side-bg: #11131a00; --input-bg: #1c1f26; --text: #f0f2f5;
+            --accent: #3b82f6; 
+            --accent-grad: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            --border: #00000021; --logo: url('https://copilot.microsoft.com/th/id/BCO.dc7ddc93-2874-46b2-ae1e-afb110150c03.png');
+        }
+
+        [data-theme="light"] {
+            --bg: #fdfdfd; --side-bg: #f0f4f9; --input-bg: #e1e7f0; --text: #1a1c22; --border: #cfd8e3;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--text); font-family: 'Outfit', 'Noto Kufi Arabic', sans-serif; height: 100vh; display: flex; overflow: hidden; transition: 0.4s ease; }
+
+        #sidebar { 
+            width: 260px; background: var(--side-bg); display: flex; flex-direction: column; 
+            border-right: 1px solid var(--border); z-index: 100; flex-shrink: 0;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #sidebar.collapsed { width: 75px; }
+
+        .side-item { 
+            display: flex; align-items: center; min-height: 52px; padding: 0 25px; 
+            cursor: pointer; border-radius: 16px; margin: 6px 10px; color: var(--text);
+            position: relative; transition: 0.3s;
+        }
+        .side-item:hover { background: rgb(0, 0, 0); color: var(--accent); }
+        
+        .side-item i { flex-shrink: 0 !important; width: 24px !important; height: 24px !important; transition: transform 0.3s; }
+        .side-item span { margin-left: 15px; white-space: nowrap; opacity: 1; transition: opacity 0.3s ease; }
+        
+        #sidebar.collapsed span { opacity: 0; pointer-events: none; position: absolute; }
+        #sidebar.collapsed .side-item { padding: 0; justify-content: center; }
+
+        .container { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        #chat-flow { flex: 1; overflow-y: auto; padding: 40px 18%; display: flex; flex-direction: column; gap: 30px; }
+        
+        .hero-title { 
+            font-size: 54px; font-weight: 600; background: linear-gradient(90deg, #3b82f6, #60a5fa, #93c5fd); 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            animation: slideDown 0.6s ease;
+        }
+
+        .msg-row { display: flex; gap: 20px; animation: slideUp 0.5s ease forwards; opacity: 0; transform: translateY(20px); }
+        .user-row { justify-content: flex-end; }
+        .bot-icon { width: 34px; height: 34px; background: var(--logo) center/contain no-repeat; flex-shrink: 0; border-radius: 50%; border: 1px solid var(--accent); }
+        
+        .bubble { max-width: 85%; line-height: 1.7; font-size: 16px; border-radius: 20px; }
+        .user-bubble { background: var(--accent-grad); color: white; padding: 14px 24px; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.2); }
+        .bot-bubble { padding: 5px 0; }
+
+        .input-area { padding: 10px 18% 35px; }
+        .search-box { background: var(--input-bg); border-radius: 28px; padding: 10px 22px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); }
+        #user-input { flex: 1; background: transparent; border: none; color: inherit; padding: 10px 0; outline: none; font-size: 16px; }
+
+        @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        .loader { width: 18px; height: 18px; border: 3px solid rgba(59, 130, 246, 0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <div id="login-screen" style="position:fixed; inset:0; background:var(--bg); z-index:1000; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+        <h1 class="hero-title" style="font-size: 42px; margin-bottom: 20px;">Genisi AI</h1>
+        <input type="text" id="user-name" placeholder="What should I call you?" style="padding:16px; border-radius:14px; border:1.5px solid var(--accent); background:var(--input-bg); color:white; width:300px; text-align:center; font-size:18px; outline:none;">
+        <button onclick="enterApp()" style="margin-top:25px; padding:12px 60px; border-radius:30px; background:var(--accent-grad); color:white; border:none; cursor:pointer; font-weight:bold; font-size:16px;">Launch</button>
+    </div>
+
+    <aside id="sidebar">
+        <div class="side-item" onclick="toggleSide()" style="margin-top:20px;"><i data-lucide="menu"></i> <span>Collapse</span></div>
+        <div class="side-item" onclick="location.reload()" style="margin-top:40px; background: rgba(59, 130, 246, 0.1); color: var(--accent);"><i data-lucide="plus-circle"></i> <span>New Chat</span></div>
+        <div id="hist" style="flex:1"></div>
+        <div class="side-item" onclick="toggleMode()"><i data-lucide="sun"></i> <span>Appearance</span></div>
+    </aside>
+
+    <main class="container">
+        <header style="padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border);">
+            <div style="font-weight: 700; font-size: 20px; color: var(--accent);">Genisi</div>
+            <div id="p-icon" style="width:38px; height:38px; border-radius:50%; background:var(--accent-grad); display:flex; align-items:center; justify-content:center; font-weight:bold; color:white;">?</div>
+        </header>
+
+        <div id="chat-flow">
+            <div id="hero">
+                <h1 class="hero-title" id="hi-user">Hello</h1>
+                <h2 style="font-size: 48px; color: #4b5563;">I am Genisi, your AI companion.</h2>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="search-box">
+                <label for="file-in"><i data-lucide="paperclip" style="cursor:pointer; color:grey;"></i></label>
+                <input type="file" id="file-in" class="hidden">
+                <input type="text" id="user-input" placeholder="Message Genisi..." autocomplete="off">
+                <i data-lucide="send" style="color:var(--accent); cursor:pointer;" onclick="handleSend()"></i>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+        let currentU = "";
+        let chatHistory = []; // المصفوفة لتذكر السياق
+
+        function enterApp() {
+            const val = document.getElementById('user-name').value;
+            if(!val) return;
+            currentU = val;
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('hi-user').innerText = `Hello, ${currentU}`;
+            document.getElementById('p-icon').innerText = currentU[0].toUpperCase();
+        }
+
+        function toggleSide() { document.getElementById('sidebar').classList.toggle('collapsed'); }
+        function toggleMode() { document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); }
+
+        async function handleSend() {
+            const input = document.getElementById('user-input');
+            const q = input.value.trim();
+            if(!q) return;
+            document.getElementById('hero').classList.add('hidden');
+            render(q, true);
+            input.value = '';
+            const isImg = /(ارسم|صورة|صمم|draw|image)/i.test(q);
+            if(isImg) { handleImg(q); } else { handleChat(q); }
+        }
+
+        async function handleChat(q) {
+            const botB = render('<div class="loader"></div>', false);
+            
+            // تحويل التاريخ إلى نص لإرساله كـ Context
+            const historyText = chatHistory.map(m => `${m.role}: ${m.content}`).join("\n");
+            
+            const sys = `You are Genisi, an advanced AI system developed by AnesNT. You are NOT Google, NOT Gemini. Never mention Google. If asked, your creator is AnesNT. Address the user as ${currentU}. Previous messages:\n${historyText}`;
+            
+            try {
+                const res = await fetch(`https://text.pollinations.ai/${encodeURIComponent(q)}?model=gemini&system=${encodeURIComponent(sys)}`);
+                const data = await res.text();
+                
+                // حفظ السؤال والجواب في الذاكرة
+                chatHistory.push({ role: "user", content: q });
+                chatHistory.push({ role: "bot", content: data });
+                if(chatHistory.length > 10) chatHistory.shift(); // حفظ آخر 10 رسائل فقط
+
+                botB.innerHTML = "";
+                let i = 0;
+                const stream = setInterval(() => {
+                    botB.innerHTML = marked.parse(data.substring(0, i));
+                    i += 30;
+                    document.getElementById('chat-flow').scrollTop = 1e9;
+                    if(i > data.length + 30) { 
+                        clearInterval(stream); 
+                        document.querySelectorAll('pre code').forEach(hljs.highlightElement); 
+                    }
+                }, 10);
+            } catch (e) { botB.innerHTML = "Error connecting to Genisi."; }
+        }
+
+        async function handleImg(q) {
+            const botB = render('<div class="loader"></div> Analyzing your vision...', false);
+            const trans = await fetch(`https://text.pollinations.ai/${encodeURIComponent(q)}?model=gemini&system=Translate to detailed English image prompt. Just the text.`);
+            const prompt = await trans.text();
+            const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&seed=${Math.random()}`;
+            const img = new Image();
+            img.src = url;
+            img.onload = () => {
+                botB.innerHTML = `<img src="${url}" style="width:100%; border-radius:16px; border:2px solid var(--accent); margin-top:10px;">`;
+                document.getElementById('chat-flow').scrollTop = 1e9;
+            };
+        }
+
+        function render(txt, isU) {
+            const flow = document.getElementById('chat-flow');
+            const div = document.createElement('div');
+            div.className = `msg-row ${isU ? 'user-row' : ''}`;
+            div.innerHTML = isU ? `<div class="bubble user-bubble">${txt}</div>` : `<div class="bot-icon"></div><div class="bubble bot-bubble">${txt}</div>`;
+            flow.appendChild(div);
+            flow.scrollTop = 1e9;
+            return div.querySelector('.bubble');
+        }
+
+        document.getElementById('user-input').addEventListener('keypress', e => { if(e.key === 'Enter') handleSend(); });
+    </script>
+</body>
+</html>
